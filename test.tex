@@ -996,7 +996,7 @@ Score = \sum_{k=1}^{K} s_k \cdot P(s_k | \mathcal{P}, D, S)
 \begin{table*}[htbp]
     \centering
     \caption{BERTopic 超参数敏感性分析与聚类质量评估。实验 3 表明过度降维（$n\_components=2$）会导致特征空间拥挤，未能有效改善聚类结构。实验 4 采用“极致局部视角”策略，显著优化了各项指标。}
-    \label{tab:bertopic_experiments}
+    \label{tab:bertopic_experiments2}
     \resizebox{\textwidth}{!}{%
         \begin{tabular}{lcccccccc}
             \toprule
@@ -1022,7 +1022,7 @@ Score = \sum_{k=1}^{K} s_k \cdot P(s_k | \mathcal{P}, D, S)
 \begin{table*}[htbp]
     \centering
     \caption{BERTopic 超参数敏感性分析与聚类质量评估。实验结果表明，收缩流形空间的邻域范围（$n\_neighbors=10$）能有效降低噪声比例，且在保持高主题多样性的同时，显著提升了语义一致性（Coherence）。注：由于 HDBSCAN 密度聚类的非凸特性，轮廓系数不适用于评估此类分布，故不再列出。}
-    \label{tab:bertopic_experiments}
+    \label{tab:bertopic_experiments3}
     \resizebox{\textwidth}{!}{%
         \begin{tabular}{lccccccc}
             \toprule
@@ -1307,10 +1307,19 @@ CNN/DailyMail数据集具有较强的 Lead-3 偏置。虽然启发式基线 Lead
 
 \section{系统架构设计}
 % 导言区需添加：\usepackage{booktabs}
-本系统采用前后端分离的B/S架构，遵循分层设计原则，自下而上分为数据层、服务层、应用层与表现层，各层之间通过定义良好的接口进行通信，确保系统的高内聚、低耦合和可扩展性。系统的核心目标是：通过自动提取文档核心内容，生成高质量摘要，帮助用户快速把握长文档重点，从而节省80\%以上的阅读时间，显著提升阅读文档、技术方案等专业文本的效率。开发环境和核心工具版本见表\ref{tab:dev_env}。
+本系统采用前后端分离的B/S架构，遵循分层设计原则，自下而上分为数据层、服务层、应用层与表现层，各层之间通过定义良好的接口进行通信，确保系统的高内聚、低耦合和可扩展性。系统的核心目标是：通过自动提取文档核心内容，生成高质量摘要，帮助用户快速把握长文档重点，从而节省80\%以上的阅读时间，显著提升阅读文档、技术方案等专业文本的效率。系统整体架构图见\ref{fig:c5f1}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\textwidth]{figure/chapter5/c5f1.pdf}
+    \caption{系统整体架构设计图}
+    \label{fig:c5f1}
+\end{figure}
 
 \subsection{技术架构选型}
-本系统的技术架构设计遵循现代 AI 原生应用（AI-Native Application）的构建范式，采用前后端分离的模块化设计，旨在实现高并发、高可用及可扩展性。总体架构主要划分为表现层、业务逻辑层与核心智能层三个部分。前端基于 Vue.js 框架与 HTML5 标准构建，利用 Web 技术栈实现文档的实时在线渲染与交互式编辑界面，确保用户操作的流畅性与响应速度。业务逻辑层采用 Spring Boot 作为核心框架，结合 MySQL 与 MyBatis 进行持久化数据存储与管理。该层主要负责文档格式的无损转换、业务逻辑调度以及对各类异构 AI 服务的统一编排与集成,核心智能层集成了 Spring AI 与 Dify 等中间件。大语言模型通过选用标准化 API 接口作为核心生成与推理引擎。同时，利用 LangChain4j 构建了特定领域的向量知识库，并部署了RAG技术。该架构不仅确保了模型输出内容的准确性与专业性，还支持通过结构化指令调用外部工具（Function Calling），显著扩展了模型的上下文感知与处理能力。其中，RAG 技术的具体实现流程如图 1.3.1 所示。
+本系统的技术架构设计遵循现代 AI 原生应用（AI-Native Application）的构建范式，采用前后端分离的模块化设计，旨在实现高并发、高可用及可扩展性。总体架构主要划分为表现层、业务逻辑层与核心智能层三个部分。前端基于 Vue.js 框架与 HTML5 标准构建，利用 Web 技术栈实现文档的实时在线渲染与交互式编辑界面，确保用户操作的流畅性与响应速度。业务逻辑层采用 Spring Boot 作为核心框架，结合 MySQL 与 MyBatis 进行持久化数据存储与管理。该层主要负责文档格式的无损转换、业务逻辑调度以及对各类异构 AI 服务的统一编排与集成,核心智能层集成了 Spring AI 与 Dify 等中间件。大语言模型通过选用标准化 API 接口作为核心生成与推理引擎。同时，利用 LangChain4j 构建了特定领域的向量知识库，并部署了RAG技术。该架构不仅确保了模型输出内容的准确性与专业性，还支持通过结构化指令调用外部工具（Function Calling），显著扩展了模型的上下文感知与处理能力。开发环境和核心工具版本见表\ref{tab:dev_env}。
+
+
+
 \begin{table}[htbp]
     \centering
     \caption{系统开发环境与核心工具选型}
@@ -1350,11 +1359,17 @@ CNN/DailyMail数据集具有较强的 Lead-3 偏置。虽然启发式基线 Lead
 图所示。
 \begin{figure}[htbp]
     \centering 
-    \includegraphics[width=0.9\textwidth]{figure/chapter4/f5.png}
+    \includegraphics[trim={0cm 6cm 0cm 3cm}, clip,width=1\textwidth]{figure/chapter5/c5f2.pdf}
     \caption{整体功能模块图}
     \label{fig:system_module_diagram}
 \end{figure}
-
+%左下右上
+% \begin{figure}[htbp]
+%     \centering 
+%     \includegraphics[width=1\textwidth]{figure/chapter5/2.drawio.pdf}
+%     \caption{整体功能模块图2}
+%     \label{fig:system_module_diagram2}
+% \end{figure}
 \subsection{数据库设计} 系统采用关系型数据库与向量数据库相结合的混合存储方案： \begin{itemize} \item \textbf{关系型数据库（MySQL 8.0+）}：存储用户信息、任务状态、文档元数据（如文件路径、版本号）及业务关联数据。 \item \textbf{向量数据库（Milvus）}：存储文档切片后的高维向量（Embedding）。系统使用 BGE-large 模型将文档片段向量化后存入 Milvus，支持基于余弦相似度的高效语义检索，为 RAG 技术提供数据支撑。 \end{itemize}
 
 \section{系统技术原理}
@@ -1405,6 +1420,14 @@ CNN/DailyMail数据集具有较强的 Lead-3 偏置。虽然启发式基线 Lead
         \item \textbf{基于评估器的自修正闭环}：系统深度集成了第四章设计的CoT评估器作为后台质检模块。大模型生成的初版摘要不会直接返回给用户，而是先传入评估器进行逻辑一致性与信息覆盖率校验。若评估结果未达标，系统将自动生成修正指令反馈给大模型，驱动其进行多轮自我迭代与文本润色 。该循环持续进行，直至生成的摘要通过评估阈值，从而确保最终输出的内容不仅语言通顺，且逻辑严密、符合学术规范。
     \end{itemize}
 \end{enumerate}
+
+\section{系统实现}
+\begin{figure}[htbp]
+    \centering 
+    \includegraphics[width=1\textwidth]{figure/chapter5/3.png}
+    \caption{首页}
+    \label{fig:showfirst}
+\end{figure}
 %词云展示
 %系统架构图
 %各个接口的返回信息
