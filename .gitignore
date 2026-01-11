@@ -18,7 +18,6 @@
 *.sublime-workspace
 *.synctex
 *.synctex(busy)
-*.tex
 *.toc
 *.txt
 *.xml
