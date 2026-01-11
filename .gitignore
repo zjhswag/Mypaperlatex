@@ -27,3 +27,8 @@
 build
 test
 xduts.pdf
+*.bbl
+.vscode/
+*.blg
+*.lot
+*.lof
