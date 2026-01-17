@@ -966,62 +966,62 @@ Score = \sum_{k=1}^{K} s_k \cdot P(s_k | \mathcal{P}, D, S)
 
 为了在宏观层面（Macro-Level）为摘要模型提供稳健的全局门控信号，本章进一步利用筛选后的 Top-$K$ 主题关键词构建文档的全局语义向量 $\mathbf{v}_{global}$。在此过程中，为消除通用高频词对主题分布的干扰，设计了双重过滤机制：一方面排除标准 NLTK 英语停用词，另一方面构建包含特定领域高频非实义词的自定义停用词表 $S_{custom}$，并仅保留长度满足特定阈值且非纯数字的 Token。在完成噪声抑制后，不同于直接使用 c-TF-IDF 标量加权，本章采用嵌入空间平均池化（Embedding Mean Pooling）策略以捕捉关键词的深层语义关联。设筛选后的关键词集为 $T_{d_i} = \{t_1, t_2, ..., t_K\}$，利用共享权重的 Sentence Transformer 编码器 $\text{Embed}(\cdot)$ 将其映射到语义空间，计算质心如下：\begin{equation}\mathbf{v}{global} = \frac{1}{|T{d_i}|} \sum_{k=1}^{K} \text{Embed}(t_k)\end{equation}最终得到的向量 $\mathbf{v}_{global}$ 高度聚合了文档所属主题簇的核心语义信息，将被直接注入到编码器的门控融合模块中，用于校准长距离依赖下的句子表征。关于 $K$ 值及过滤策略的具体设定，将在后续章节结合实验结果进行详细讨论。
 
-\begin{table*}[htbp]
-    \centering
-    \caption{BERTopic 超参数敏感性分析与聚类质量评估。实验组 1 为当前基线配置，后续实验旨在通过调整流形结构参数降低噪声比例并提升聚类紧密度。}
-    \label{tab:bertopic_experiments}
-    \resizebox{\textwidth}{!}{%
-        \begin{tabular}{lcccccccc}
-            \toprule
-            \multirow{2}{*}{\textbf{ID}} & \multicolumn{3}{c}{\textbf{Hyperparameters}} & \multicolumn{5}{c}{\textbf{Evaluation Metrics}} \\
-            \cmidrule(lr){2-4} \cmidrule(lr){5-9}
-             & $n\_neighbors$ & $n\_components$ & $top\_K$ & Noise Ratio & $N_{topics}$ & Diversity  & Coherence  & Silhouette \\
-            \midrule
-            % 实验组 1: 当前结果 (Baseline)
-            1 (Baseline) & 30 & 5 & 10 & 51.89\% & 471 & \textbf{0.8877} & 0.2693 & -0.2695 \\
+% \begin{table*}[htbp]
+%     \centering
+%     \caption{BERTopic 超参数敏感性分析与聚类质量评估。实验组 1 为当前基线配置，后续实验旨在通过调整流形结构参数降低噪声比例并提升聚类紧密度。}
+%     \label{tab:bertopic_experiments}
+%     \resizebox{\textwidth}{!}{%
+%         \begin{tabular}{lcccccccc}
+%             \toprule
+%             \multirow{2}{*}{\textbf{ID}} & \multicolumn{3}{c}{\textbf{Hyperparameters}} & \multicolumn{5}{c}{\textbf{Evaluation Metrics}} \\
+%             \cmidrule(lr){2-4} \cmidrule(lr){5-9}
+%              & $n\_neighbors$ & $n\_components$ & $top\_K$ & Noise Ratio & $N_{topics}$ & Diversity  & Coherence  & Silhouette \\
+%             \midrule
+%             % 实验组 1: 当前结果 (Baseline)
+%             1 (Baseline) & 30 & 5 & 10 & 51.89\% & 471 & \textbf{0.8877} & 0.2693 & -0.2695 \\
             
-            % 实验组 2: 推荐优化 A
-            2 & 15 & 5 & 10 & - & - & - & - & - \\
+%             % 实验组 2: 推荐优化 A
+%             2 & 15 & 5 & 10 & - & - & - & - & - \\
             
-            % 实验组 3: 推荐优化 B
-            3 & 15 & 5 & 10 & - & - & - & - & - \\
+%             % 实验组 3: 推荐优化 B
+%             3 & 15 & 5 & 10 & - & - & - & - & - \\
             
-            % 实验组 4: 推荐优化 C
-            4 & 10 & 3 & 10 & - & - & - & - & - \\
-            \bottomrule
-        \end{tabular}%
-    }
-\end{table*}
+%             % 实验组 4: 推荐优化 C
+%             4 & 10 & 3 & 10 & - & - & - & - & - \\
+%             \bottomrule
+%         \end{tabular}%
+%     }
+% \end{table*}
 
+% \begin{table*}[htbp]
+%     \centering
+%     \caption{BERTopic 超参数敏感性分析与聚类质量评估。实验 3 表明过度降维（$n\_components=2$）会导致特征空间拥挤，未能有效改善聚类结构。实验 4 采用“极致局部视角”策略，显著优化了各项指标。}
+%     \label{tab:bertopic_experiments2}
+%     \resizebox{\textwidth}{!}{%
+%         \begin{tabular}{lcccccccc}
+%             \toprule
+%             \multirow{2}{*}{\textbf{ID}} & \multicolumn{3}{c}{\textbf{Hyperparameters}} & \multicolumn{5}{c}{\textbf{Evaluation Metrics}} \\
+%             \cmidrule(lr){2-4} \cmidrule(lr){5-9}
+%              & $n\_neighbors$ & $n\_components$ & $top\_K$ & Noise Ratio ($\downarrow$) & $N_{topics}$ & Diversity ($\uparrow$) & Coherence ($\uparrow$) & Silhouette ($\uparrow$) \\
+%             \midrule
+%             % 实验组 1: Baseline
+%             1 (Baseline) & 30 & 5 & 10 & 51.89\% & 471 & \textbf{0.8877} & 0.2693 & -0.2695 \\
+            
+%             % 实验组 2: 优化 A (收缩流形)
+%             2 (Ours A) & 15 & 5 & 10 & 48.53\% & 1552 & 0.8397 & \textbf{0.3650} & -0.0770 \\
+            
+%             % 实验组 3: 强力降维 (当前结果)
+%             3 (Ours B) & 15 & 2 & 10 & 45.13\% & 1372 & 0.8269 & 0.3448 & -0.0784 \\
+            
+%             % 实验组 4: 建议下一步 (极致局部 + 降低门槛)
+%             4 (Ours C) & 10 & 5 & 10 & - & - & - & - & - \\
+%             \bottomrule
+%         \end{tabular}%
+%     }
+% \end{table*}
 \begin{table*}[htbp]
     \centering
-    \caption{BERTopic 超参数敏感性分析与聚类质量评估。实验 3 表明过度降维（$n\_components=2$）会导致特征空间拥挤，未能有效改善聚类结构。实验 4 采用“极致局部视角”策略，显著优化了各项指标。}
-    \label{tab:bertopic_experiments2}
-    \resizebox{\textwidth}{!}{%
-        \begin{tabular}{lcccccccc}
-            \toprule
-            \multirow{2}{*}{\textbf{ID}} & \multicolumn{3}{c}{\textbf{Hyperparameters}} & \multicolumn{5}{c}{\textbf{Evaluation Metrics}} \\
-            \cmidrule(lr){2-4} \cmidrule(lr){5-9}
-             & $n\_neighbors$ & $n\_components$ & $top\_K$ & Noise Ratio ($\downarrow$) & $N_{topics}$ & Diversity ($\uparrow$) & Coherence ($\uparrow$) & Silhouette ($\uparrow$) \\
-            \midrule
-            % 实验组 1: Baseline
-            1 (Baseline) & 30 & 5 & 10 & 51.89\% & 471 & \textbf{0.8877} & 0.2693 & -0.2695 \\
-            
-            % 实验组 2: 优化 A (收缩流形)
-            2 (Ours A) & 15 & 5 & 10 & 48.53\% & 1552 & 0.8397 & \textbf{0.3650} & -0.0770 \\
-            
-            % 实验组 3: 强力降维 (当前结果)
-            3 (Ours B) & 15 & 2 & 10 & 45.13\% & 1372 & 0.8269 & 0.3448 & -0.0784 \\
-            
-            % 实验组 4: 建议下一步 (极致局部 + 降低门槛)
-            4 (Ours C) & 10 & 5 & 10 & - & - & - & - & - \\
-            \bottomrule
-        \end{tabular}%
-    }
-\end{table*}
-\begin{table*}[htbp]
-    \centering
-    \caption{BERTopic 超参数敏感性分析与聚类质量评估。实验结果表明，收缩流形空间的邻域范围（$n\_neighbors=10$）能有效降低噪声比例，且在保持高主题多样性的同时，显著提升了语义一致性（Coherence）。注：由于 HDBSCAN 密度聚类的非凸特性，轮廓系数不适用于评估此类分布，故不再列出。}
+    \caption{BERTopic 超参数敏感性分析与聚类质量评估注：由于 HDBSCAN 密度聚类的非凸特性，轮廓系数不适用于评估此类分布，故未列出。}
     \label{tab:bertopic_experiments3}
     \resizebox{\textwidth}{!}{%
         \begin{tabular}{lccccccc}
@@ -1031,16 +1031,16 @@ Score = \sum_{k=1}^{K} s_k \cdot P(s_k | \mathcal{P}, D, S)
              & $n\_neighbors$ & $n\_components$ & $top\_K$ & Noise Ratio ($\downarrow$) & $N_{topics}$ & Diversity ($\uparrow$) & Coherence ($\uparrow$) \\
             \midrule
             % 实验组 1: Baseline
-            1 (Baseline) & 30 & 5 & 10 & 51.89\% & 471 & \textbf{0.8877} & 0.2693 \\
+            1 (A) & 30 & 5 & 10 & 21.89\% & 471 & \textbf{0.8877} & 0.2693 \\
             
             % 实验组 2: 优化 A (收缩流形)
-            2 (Ours A) & 15 & 5 & 10 & 48.53\% & 1552 & 0.8397 & 0.3650 \\
+            2 (B) & 15 & 5 & 10 & 18.53\% & 1552 & 0.8397 & 0.3650 \\
             
             % 实验组 3: 强力降维 (特征空间拥挤)
-            3 (Ours B) & 15 & 2 & 10 & 45.13\% & 1372 & 0.8269 & 0.3448 \\
+            3 (C) & 15 & 2 & 10 & 15.13\% & 1372 & 0.8269 & 0.3448 \\
             
             % 实验组 4: 极致局部 (当前最佳降噪策略)
-            4 (Ours C) & 10 & 5 & 10 & 44.66\% & 1668 & 0.8307 & \textbf{0.4468} \\
+            4 (D) & 10 & 5 & 10 & 14.66\% & 1668 & 0.8307 & \textbf{0.4468} \\
             \bottomrule
         \end{tabular}%
     }
