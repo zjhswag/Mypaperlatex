@@ -1359,11 +1359,11 @@ CNN/DailyMail数据集具有较强的 Lead-3 偏置。虽然启发式基线 Lead
 图所示。
 \begin{figure}[htbp]
     \centering 
-    \includegraphics[trim={0cm 6cm 0cm 3cm}, clip,width=1\textwidth]{figure/chapter5/c5f2.pdf}
+    \includegraphics[width=1\textwidth]{figure/chapter5/6.drawio.pdf}
     \caption{整体功能模块图}
     \label{fig:system_module_diagram}
 \end{figure}
-%左下右上
+
 % \begin{figure}[htbp]
 %     \centering 
 %     \includegraphics[width=1\textwidth]{figure/chapter5/2.drawio.pdf}
@@ -1376,13 +1376,18 @@ CNN/DailyMail数据集具有较强的 Lead-3 偏置。虽然启发式基线 Lead
 \subsection{大模型技术} 系统采用大模型作为核心生成与推理引擎。大模型并非孤立工作，而是作为系统的智能中枢，通过精心设计的提示工程（Prompt Engineering），接收来自文档处理引擎的结构化文本、BertSum 提取的主题词以及 RAG 检索的背景知识，生成具备专业深度与逻辑连贯性的文本
 
 \subsection{RAG与知识库检索}
-为解决大模型的知识滞后与幻觉问题，系统构建了完整的 RAG 流水线26：
+为解决大模型的知识滞后与幻觉问题，系统构建了完整的 RAG 流水线，RAG 流程图如\ref{fig:RAG}：
 \begin{enumerate}
 \item \textbf{文档切片与向量化}：使用 Spring AI 的 ETL 组件，将文档按语义边界切分为 512 Token 的片段，利用 BGE-large 模型转化为向量并存入Milvus。
 \item \textbf{混合检索策略}：在生成阶段，系统利用 BertSum 提取的主题词作为查询向量，在知识库中检索语义最相关的 $K$ 个片段
-\item \textbf{上下文增强}：将检索到的专业背景知识与原始文档片段共同拼接，形成增强的上下文输入，确保模型回答“有据可循”
+\item \textbf{上下文增强}：将检索到的专业背景知识与原始文档片段共同拼接，形成增强的上下文输入，确保模型回答的事实性。
 \end{enumerate}
-
+\begin{figure}[H]
+    \centering 
+    \includegraphics[trim={1cm 8cm 1cm 1cm}, clip,width=0.5\textwidth]{figure/chapter5/5.pdf}
+    \caption{RAG流程图}
+    \label{fig:RAG}
+\end{figure}
 \subsection{MCP与异构服务集成}
 为了实现大语言模型与特定领域算法（如本文第三章提出的 TA-BertSum）的高效协同，本系统引入并深度定制了 MCP。MCP 是一种基于 JSON-RPC 2.0 的开放标准，旨在标准化 AI 模型（Client）与外部数据源或工具（Server）之间的通信接口。
 
@@ -1421,253 +1426,110 @@ CNN/DailyMail数据集具有较强的 Lead-3 偏置。虽然启发式基线 Lead
     \end{itemize}
 \end{enumerate}
 
+
 \section{系统实现}
-\begin{figure}[htbp]
+\subsection{核心类设计}
+系统基于面向对象设计原则（OOP）与分层架构模式构建，旨在实现业务逻辑、智能决策与底层基础设施的解耦。系统的核心类结构遵循“高内聚、低耦合”的设计理念，通过定义清晰的接口与继承关系，支撑起 RAG 检索、MCP 工具调用及 CoT 自修正闭环等关键功能。系统核心类图如图 \ref{fig:umlagent} 所示
+如图所示，系统核心逻辑划分为四个逻辑层级，各层具体设计如下：
+\begin{figure}[H]    
+	 \centering     
+	 \includegraphics[trim={1cm 9cm 1cm 1cm},clip,width=1\textwidth]{figure/chapter5/c5f7.pdf}     \caption{智能体核心业务类图}     
+	 \label{fig:umlagent} 
+\end{figure}
+
+如图所示，系统核心逻辑划分为四个逻辑层级，各层具体设计如下：
+\begin{enumerate} \item \textbf{智能体核心层 (Agent Core Layer)}： 该层是系统的决策中枢。设计了抽象基类 \texttt{BaseAgent} 以标准化智能体的生命周期管理，包含 \texttt{execute()} 抽象方法与日志追踪能力。核心实现类 \texttt{DocumentAgent} 继承自该基类，封装了具体的调度逻辑。 \begin{itemize} \item \textbf{调度与执行}：\texttt{DocumentAgent} 中的 \texttt{orchestrate()} 方法负责协调意图识别与任务分发，而 \texttt{selfCorrectLoop()} 方法则实现了基于思维链的“生成-评估-修正”闭环逻辑。 \item \textbf{组件组合}：该类通过组合关系（Composition）集成了 \texttt{CoTEvaluator} 组件。评估器负责对生成的摘要草稿进行逻辑一致性与信息覆盖率的量化评分，为自修正机制提供反馈依据。 
+\end{itemize}
+\item \textbf{基础设施层 (Infrastructure Layer)}：
+该层负责与外部异构服务及底层数据设施进行交互，屏蔽了底层的通信细节。
+\begin{itemize}
+    \item \textbf{MCP 协议适配}：定义了 \texttt{MCPToolHandler} 标准接口，规范了工具的定义与调用行为。\texttt{BertSumClient} 类实现了该接口，充当 Java 后端与 Python 算法服务之间的适配器，通过 MCP 协议跨语言调用 BertSum 模型进行主题词提取。
+    \item \textbf{RAG 知识检索}：\texttt{MilvusVectorStore} 类封装了向量数据库的操作，提供 \texttt{search()} 方法以支持基于语义的高维向量检索，为智能体提供准确的背景知识上下文。
+\end{itemize}
+
+\item \textbf{业务服务层 (Business Layer)}：
+\texttt{SummaryService} 作为系统的入口服务，负责承接 Web 层的请求。它并不直接处理复杂的生成逻辑，而是作为委托者（Delegator），通过异步方式创建 \texttt{AgentTask} 并调度 \texttt{DocumentAgent} 执行具体任务，实现了业务状态管理与核心计算逻辑的分离。
+
+\item \textbf{领域模型层 (Domain Model)}：
+该层定义了系统中流转的核心实体。其中 \texttt{SysDocument} 与 \texttt{DocumentSection} 呈组合关系，体现了文档与切片的生命周期绑定；\texttt{AgentTask} 结合 \texttt{TaskStatus} 枚举，实现了对长耗时生成任务的状态机管理（如 PENDING, PROCESSING, RETRYING），确保了系统在面对高并发与异常情况下的鲁棒性。
+
+% --- 新增第 5 点：文档处理层 ---
+\item \textbf{文档处理与转换服务层 (Document Processing \& Conversion Layer)}：
+针对 Web 端在线编辑与本地 Office 文档格式的兼容性痛点，系统构建了独立的文档处理子模块。该模块实现了二进制流与 HTML DOM 之间的双向高保真映射，其详细类结构如图 \ref{fig:showfirst3} 所示。
+
+\begin{figure}[H]
+    \centering 
+    \includegraphics[trim={0cm 12cm 0cm 1cm}, clip,width=1\textwidth]{figure/chapter5/c5f6.pdf}
+    \caption{文档格式转换模块类图}
+    \label{fig:showfirst3}
+\end{figure}
+
+具体核心类职责如下：
+\begin{itemize}
+    \item \textbf{文档解析服务（上行流）}：\texttt{DocxToHtml} 类负责文档的上传与初始化解析。该类集成 \texttt{Aspose.Words} 引擎，将非结构化的 DOCX 二进制流转换为带有内联样式的 HTML 文本。为了优化前端阅读体验，该类内置了 DOM 遍历算法，能够自动识别文档中的 TOC 目录域，并在其位置预置分页符（PageBreak），实现了文档结构的语义化重构。
+    \item \textbf{文档重组服务（下行流）}：\texttt{HtmlToDocxService} 类负责文档的逆向重组与导出。在保存阶段，它不仅将 HTML 源码反序列化回 Word 文档对象，还强制应用了标准的 A4 页面布局（210mm $\times$ 297mm）。此外，该服务通过 \texttt{RestTemplate} 组件与外部文件系统交互，负责将重组后的文档流同步上传，并维护全局唯一的业务标识（bgid），确保了分布式环境下的数据一致性。
+\end{itemize}
+
+\end{enumerate}
+
+\subsection{基于 CoT 闭环的摘要生成时序逻辑}
+系统实现摘要生成的具体交互时序与自修正逻辑如图 \ref{fig:summary_generation_seq} 所示。该流程展示了智能体如何协调意图识别、MCP 服务与评估器模块，通过多轮迭代确保输出质量。具体交互逻辑包含以下三个核心阶段：
+
+\begin{enumerate}
+    \item \textbf{意图识别与知识准备阶段（Step 1-7）}：
+    交互始于用户发起自然语言指令，智能体首先调用语义意图识别模块确认用户需求。随后，通过 MCP 协议跨语言调用 TA-BertSum 服务提取主题词，并以此为索引在 Milvus 向量数据库中检索 Top-K 背景知识，构建增强的语义上下文。
+    
+    \item \textbf{CoT 生成与自修正闭环阶段（Step 8-14）}：
+    系统引入了“生成-评估”对抗机制。大模型生成的初稿需经过 CoT 评估器的逻辑质检。若评估未通过，系统将根据反馈建议驱动大模型进行自我迭代修正（Loop 循环）；该机制有效解决了传统端到端生成中存在的逻辑断层与幻觉问题。
+    
+    \item \textbf{结果反馈阶段（Step 15）}：
+    经过多轮优化锁定的最终版本摘要，由智能体渲染并实时推送到前端交互界面，完成知识交付。
+\end{enumerate}
+\begin{figure}[H]
     \centering 
     \includegraphics[width=1\textwidth]{figure/chapter5/3.drawio.pdf}
-    \caption{首页}
-    \label{fig:time}
+    \caption{摘要生成业务流程时序图}
+    \label{fig:summary_generation_seq}
 \end{figure}
 
-\begin{figure}[htbp]
-    \centering 
-    \includegraphics[width=1\textwidth]{figure/chapter5/4.drawio.pdf}
-    \caption{首页}
-    \label{fig:showfirst2}
-\end{figure}
+\subsection{交互界面展示}
+系统首页作为用户登录后的核心交互门户，其核心功能是作为功能路由与模式选择器，清晰地将系统的三大核心能力呈现给用户。如图 \ref{fig:showfirst} (a) 所示，系统根据用户意图将核心能力划分为三大模块：AI文档对话模块基于 RAG 技术，专注于存量文档的深度问答与知识挖掘；AI超级智能体模块集成了 MCP 工具链，提供通用的专业领域问答服务；文档智能助手模块则深度整合了 CoT 思维链与自修正机制，专为长文档的智能摘要与辅助写作场景设计。这种分流设计有效降低了用户的认知负荷，确保用户能快速进入符合当前任务需求的交互环境。
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering 
-    \includegraphics[width=1\textwidth]{figure/chapter5/3.png}
-    \caption{首页}
+    \includegraphics[trim={2cm 5.5cm 5cm 3cm}, clip,width=1\textwidth]{figure/chapter5/2.pdf}
+    \caption{系统核心交互界面展示：(a) 系统功能首页；(b) 文档导入与编辑预览}
     \label{fig:showfirst}
 \end{figure}
+针对传统文档编辑不支持跨端编辑和多人协同的特点。如图 \ref{fig:showfirst} (b) 所示，当用户通过文件流方式上传本地存储的 .docx 或 .doc 格式文档。后端解析引擎对文档流进行高保真处理，将原始文档的排版、图片及表格元素无损转换为 HTML 结构，并基于开源二次开发的富文本编辑器在前端进行渲染。该编辑环境具备以下关键特性： 
+
+1.在线编辑：提供与本地 Word 软件一致的编辑体验，支持在线的实时格式调整与内容修订。 
+
+2.状态持久化：引入浏览器本地存储机制，实现编辑进度的实时缓存与断点续传，有效防止因网络波动导致的灵感丢失。 
+
+3.多格式云端存储：编辑完成的内容支持逆向重组为 PDF 或 DOCX 格式下载，实现了从本地导入到云端存储，避免文件丢失。
+
+同时为了解决传统本地文档编辑与 AI 辅助割裂的痛点，系统构建了如图 \ref{fig:showfirst2} 所示的集成工作台。该界面采用左右分栏设计：左侧为基于 HTML5 的富文本在线编辑区，右侧为基于 WebSocket 的智能对话交互区。
+
+\begin{figure}[htbp] \centering \includegraphics[trim={2cm 5cm 6cm 2cm}, clip,width=1\textwidth]{figure/chapter5/3.pdf} \caption{文档智能助手工作台：(a) 在线编辑与格式排版；(b) 智能摘要生成与多轮对话} \label{fig:showfirst2} \end{figure}
+左侧编辑区旨在提供对标原生桌面级应用（如 Microsoft Word）的编辑体验。系统内置了高精度的文档解析引擎，能够完美处理从本地 Word（.docx）到云端 HTML 的跨格式转换；无论是复杂的嵌套表格、多层级列表，还是特殊的字体字号与段落间距，系统均能实现像素级还原，确保文档在跨平台流转过程中格式的高度一致性，有效解决了传统 Web 编辑器常见的样式丢失与错乱问题。在编辑功能上，系统具备全量的样式控制能力，功能覆盖率涵盖了文档处理的核心需求。用户不仅可以实时调整字体族、字号大小、文本颜色及背景高亮，还能通过可视化的交互方式处理单元格合并与拆分、边框样式调整等复杂表格操作，以及图片的缩放与混排。此外，通过对 DOM 树的实时操作与优化，系统实现了操作的毫秒级响应，配合内置的字数统计、撤销重做栈以及支持动态缩放的沉浸式阅读模式，为用户构建了一个流畅、专业且功能完备的云端写作环境。
+
+右侧交互区集成了本文提出的智能体核心能力，实现了基于自然语言的文档处理自动化，交互区可以折叠或者展开，方便左侧的编辑区全屏阅读编辑。当用户在对话框输入指令时，前端并不直接请求大模型，而是先经过意图识别模块。若识别为生成摘要等指令，系统将自动触发 MCP 工具链；若识别为内容问答指令，则激活 RAG 检索流程。 如图 \ref{fig:showfirst2} (b) 所示，当触发摘要任务时，系统通过 MCP 协议调用底层算法提取关键信息，并结合 RAG 检索到的背景知识，构建结构化的 Prompt 上下文。生成的摘要并非静态文本，而是支持用户通过多轮对话进行渐进式修正。生成的结果按照文档内容的主题词、关键句、抽取式摘要和生成式摘要返回，同时得益于流式传输（Streaming）技术，大模型的生成结果能够通过流式传输实时返回，显著降低了用户的等待焦虑。 
+% \begin{figure}[htbp]
+%     \centering 
+%     \includegraphics[trim={2cm 5cm 6cm 2cm}, clip,width=1\textwidth]{figure/chapter5/3.pdf}
+%     \caption{系统页面截图2}
+%     \label{fig:showfirst2}
+% \end{figure}
+
+
+% \subsection{}
+
 %词云展示
 %系统架构图
 %各个接口的返回信息
-\chapter{基于残差金字塔与频谱融合的轻量化图像超分辨率模型}
+%左下右上
 
-\section{引言}
-图像超分辨率（Image Super-Resolution, SR）指的是从低分辨率（Low-Resolution, LR）输入中重建高分辨率（High-Resolution, HR）图像的过程，这一任务长期以来一直是图像处理领域的基础性研究方向。SR 在众多应用场景中扮演着重要角色，包括医学影像诊断、卫星遥感、视频监控增强以及图像修复等。通过恢复精细的结构细节并改善边缘清晰度，SR 不仅能够提升视觉感知质量，还能增强下游计算机视觉任务（如目标检测、识别和分割）的鲁棒性与性能。
-
-随着 Dong 等人提出 SRCNN~\cite{dong2014learning} 这一开创性工作，深度学习驱动的 SR 研究取得了迅猛进展。特别是在卷积神经网络（Convolutional Neural Networks, CNNs）及其后续的 Transformer 架构的推动下，许多代表性模型（如 RCAN~\cite{zhang2018image}、SwinIR~\cite{liang2021swinir} 和 ELAN~\cite{zhang2022efficient}）在图像重建精度与感知质量方面取得了显著成果。这些模型通过引入深层特征层次、注意力机制及高级特征融合策略，在超分任务上实现了优异的重建性能。然而，这类模型通常具有极高的计算复杂度和内存开销，限制了其在移动设备、嵌入式系统和边缘计算平台中的实际部署。
-
-为了解决高复杂度与高参数量带来的挑战，研究者们提出了一系列轻量化 SR 网络结构，致力于在降低计算成本和模型规模的同时保持竞争性的重建性能。其中，一些方法结合了 CNN 与 Transformer 的优势，如 HNCT~\cite{fang2022hybrid} 与 ESRT~\cite{lu2022efficient}。这些模型采用多样的策略，例如集成本地特征提取与全局上下文建模，通过轻量化注意力机制与高效卷积结构来简化计算开销。例如，HNCT 通过高效注意机制降低了 Transformer 模块的计算成本，而 ESRT 则进一步优化了 CNN 与 Transformer 层之间的融合方式。
-
-轻量化 SR 网络的研究意义重大。在低带宽视频传输、移动摄影、实时监控与增强现实（AR）等应用中，模型需以极低功耗和延迟生成高质量帧，从而在资源受限条件下保持感知质量。因此，构建高效的 SR 网络对于提升用户体验与下游任务性能至关重要。
-
-尽管轻量化 SR 研究已取得显著进展，但仍存在若干关键问题亟待解决：  
-首先，如何在性能与效率之间实现最佳平衡仍是未解难题。在受限计算预算下，实现细节恢复与全局信息建模的协调至关重要。  
-其次，轻量化架构设计需兼顾多尺度空间特征建模能力，以应对不同尺寸与复杂度的图像。许多轻量模型缺乏对多尺度空间关系的刻画，导致在处理纹理复杂或细节丰富的图像时性能受限。  
-再次，现有模型往往局限于空间域建模，忽略了频谱域的潜在价值，从而导致高频细节恢复不足、纹理模糊及边缘重建不完整。  
-最后，如何在有限计算预算下融合空间域与频谱域信息，实现跨域特征协同增强，仍是高效 SR 模型的研究重点。
-
-为应对上述挑战，本文提出一种结合 CNN 与 Transformer 优势的混合架构——\textbf{RPSFNet (Residual Pyramid and Spectral Fusion Network)}，旨在在轻量化条件下实现高效的全局—局部特征建模与频谱增强。RPSFNet 的核心设计思想包括以下几点：
-
-\begin{itemize}
-	\item \textbf{残差金字塔块（Residual Pyramid Block, RPB）：} 在不同通道组间引入空间移位操作，通过扩张卷积与深度可分离卷积提取多尺度特征，实现细节与结构的高效重建；
-	\item \textbf{高效注意力块（Efficient Attention Block, EAB）：} 融合门控空间注意单元（Gated Spatial Attention Unit, GSAU），替代传统 MLP 层结构，以降低计算开销并强化特征选择能力；
-	\item \textbf{波-傅里叶融合块（Wave-Fourier Fusion Block, WFFB）：} 在频域与空间域之间建立双向映射，通过集成小波变换（Wavelet Transform）与傅里叶变换（Fourier Transform）融合多域信息，从而显著增强高频纹理恢复能力；
-	\item \textbf{跨层特征协同机制：} 利用浅层卷积捕获低级纹理与边缘特征，深层模块建模长程依赖关系，实现全局上下文与局部细节的协同重建。
-\end{itemize}
-
-RPSFNet 采用分层特征提取与频谱融合策略，在轻量化架构中实现高精度重建。通过在空间域与频域之间的特征协同优化，模型在不显著增加参数量的前提下大幅提升了感知质量。实验结果表明，RPSFNet 在多个基准数据集上均取得领先性能，特别是在 Manga109 数据集的 $\times4$ 放大实验中，相较于轻量级模型 IPT-Tiny，PSNR 提升 0.13 dB，且参数量更低，验证了模型在性能与效率之间的优越平衡。
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.85\textwidth]{figure/chapter4/f1}
-	\caption{RPSFNet 与主流轻量级单图像超分模型在 Manga109 ($\times4$) 数据集上的参数量与 PSNR 对比。}
-	\label{fig:rpsf_psnr_param}
-\end{figure}
-
-本文的主要贡献可总结如下：
-\begin{itemize}
-	\item 提出了一种新型轻量化 SR 模型——RPSFNet，该模型结合多尺度空间特征提取、频谱融合与高效长程注意机制，在降低计算复杂度的同时实现了卓越的重建性能；
-	\item 设计了波-傅里叶融合模块（WFFB），在空间域与频域间实现信息交互，有效提升了纹理与结构的恢复效果；
-	\item 在多个公开基准上验证了 RPSFNet 的优越性能，在保持极低参数量的同时取得了领先的重建精度；
-	\item 本文其余部分组织如下：第二节综述轻量化 SR 网络与 Transformer-based 方法；第三节详细介绍 RPSFNet 的总体架构与关键模块；第四节展示实验结果与分析；第五节总结全文并探讨未来研究方向。
-\end{itemize}
-
-\section{设计思想及框架}
-
-本章详细介绍所提出的轻量化图像超分辨率网络——\textbf{Residual Pyramid and Spectral Fusion Network (RPSFNet)} 的整体设计思路与核心结构。RPSFNet 的总体目标是在参数量与计算复杂度极低的前提下，实现卓越的超分辨率重建性能。为此，网络通过浅层特征提取、深层金字塔特征提取、频谱融合与图像重建四个阶段，系统性地解决了轻量化 SR 模型中常见的三大问题：局部与全局依赖不足、频域特征缺失以及特征层间融合效率低。
-
-RPSFNet 的总体结构如图~\ref{fig:rpsf_architecture} 所示。模型由三个主要模块构成：浅层特征提取模块（Shallow Feature Extraction Module）、深层特征提取模块（Deep Feature Extraction Module）、以及波–傅里叶融合与重建模块（Wave–Fourier Fusion and Image Reconstruction Module）。每个模块均针对轻量化 SR 网络中的特定挑战进行了结构化设计，旨在平衡性能与计算代价。
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.95\textwidth]{figure/chapter4/f2}
-	\caption{RPSFNet 的总体框架。模型由多个 RPSF Block 级联而成，每个 Block 包含高效注意力块 (EAB)、门控空间注意单元 (GSAU)、金字塔块 (PB) 以及波–傅里叶融合块 (WFFB)。}
-	\label{fig:rpsf_architecture}
-\end{figure}
-
----
-
-\subsection{网络架构}
-
-\paragraph{1) 浅层特征提取}  
-浅层特征提取模块旨在从低分辨率输入图像中提取初级纹理与边缘特征。该模块仅包含一个 $3\times3$ 卷积层，将输入图像 $\mathbf{I}_{LR} \in \mathbb{R}^{H\times W\times C_{in}}$ 投影到高维特征空间：
-\[
-\mathbf{F}_0 = \sigma(\mathrm{Conv}_{3\times3}(\mathbf{I}_{LR})),
-\]
-其中 $H, W, C_{in}$ 分别表示输入图像的高、宽与通道数，$\sigma(\cdot)$ 为非线性激活函数。所得浅层特征 $\mathbf{F}_0$ 被用作后续深层特征提取模块的输入，以实现从局部到全局的特征递进建模。
-
-\paragraph{2) 深层特征提取}  
-为有效捕获多尺度上下文依赖，RPSFNet 堆叠了 $N$ 个 \textbf{残差金字塔与频谱融合块（RPSF Blocks）}。每个块均包含以下三个核心单元：
-\begin{itemize}
-	\item 高效注意力块（Efficient Attention Block, EAB）
-	\item 门控空间注意单元（Gated Spatial Attention Unit, GSAU）
-	\item 残差金字塔块（Pyramid Block, PB）
-\end{itemize}
-
-RPSF Block 的主要任务是通过特征分层与空间–频谱交互，实现多尺度特征的有效捕获与传递，从而兼顾局部纹理恢复与长程依赖建模。
-
-\paragraph{3) 轻量化 Transformer 模块}  
-基于 ESRT~\cite{lu2022efficient} 的轻量 Transformer 模块，本文进一步改进其结构，将传统 MLP 层替换为 \textbf{门控空间注意单元 (GSAU)}。传统 MLP 只能执行线性变换，缺乏空间上下文建模能力，而 GSAU 通过卷积与门控机制联合捕获局部结构信息，从而弥补纯 Transformer 的不足。与标准 MLP 相比，GSAU 模块在以下方面具有优势：
-\begin{enumerate}
-	\item \textbf{通道扩展（Ghost Expand）}：使用 $1\times1$ 卷积扩展通道数以生成 Ghost 特征图，提高表示能力的同时降低冗余；
-	\item \textbf{卷积增强（Convolutional Refinement）}：采用 $7\times7$ 深度可分离卷积增强局部上下文特征；
-	\item \textbf{门控机制（Gating Mechanism）}：引入门控控制单元以自适应调节信息流动，从而提升空间依赖建模能力。
-\end{enumerate}
-这一设计使得 RPSFNet 同时具备 CNN 的局部敏感性与 Transformer 的长程建模优势，在保持轻量化的同时显著提升了全局结构重建能力。
-
----
-
-\subsection{金字塔块与高效注意力块}
-
-\paragraph{1) 残差金字塔块}  
-RPB 是 RPSFNet 的核心结构之一，旨在通过多尺度位移与扩张卷积操作构建自适应的金字塔特征空间。该模块利用不同尺度的 Shift 操作（Shift$_4$、Shift$_8$、Shift$_{16}$）结合扩张卷积提取多尺度上下文信息，具体包括：
-\begin{itemize}
-	\item $4\times4$ Shift：实现细粒度特征位移，用于捕获局部细节；
-	\item $8\times8$ Shift：结合扩张卷积提取中尺度语义信息；
-	\item $16\times16$ Shift：通过更大感受野的卷积操作建立全局依赖。
-\end{itemize}
-
-该模块的整体处理流程如下：
-\[
-x_1 = \mathrm{Conv1}(\mathrm{LayerNorm}(x)),
-\]
-\[
-\text{shift}_i = \mathrm{Shift}(\mathrm{DilatedConv}(x_1, r_i)), \quad i \in \{4, 8, 16\},
-\]
-\[
-x_{\text{fused}} = \sum_{i\in\{4,8,16\}} w_i \cdot \text{shift}_i,
-\]
-\[
-x_{\text{out}} = \mathrm{ReLU}(\mathrm{Conv1\times1}(x_{\text{fused}})),
-\]
-\[
-x_{\text{final}} = \mathrm{GSAU}(x_{\text{out}} + x),
-\]
-其中 $w_i$ 表示可学习的融合权重，用于自适应加权多尺度特征的贡献。通过引入残差连接与门控机制，模块在减少参数与计算开销的同时，增强了特征的表达能力与稳定性。该结构的示意如图~\ref{fig:pyramid_block} 所示。
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.9\textwidth]{figure/chapter4/f3}
-	\caption{金字塔块（Pyramid Block）的结构。模块通过多尺度移位、深度可分离扩张卷积与门控机制实现多层特征聚合。}
-	\label{fig:pyramid_block}
-\end{figure}
-
-\paragraph{2) 高效注意力块}  
-EAB 模块源自 ESRT 的轻量注意力框架，但进一步进行了结构优化。该模块集成了多头注意力机制（Multi-Head Attention, MHA）与卷积增强机制，能够在低复杂度下实现长程特征依赖建模。通过用 GSAU 替代传统 MLP 层，EAB 显著提升了模型对非线性特征的捕获能力。该结构在性能、可解释性和计算效率之间取得了良好平衡，使得网络在多尺度特征融合阶段更加稳健。
-
----
-
-\subsection{特征聚合策略}
-
-\paragraph{小波–傅里叶融合模块}  
-小波变换（Wavelet Transform）能够有效提取图像中的低频特征（如边缘轮廓），而傅里叶变换（Fourier Transform）则擅长捕获全局频率分布与高频细节。RPSFNet 将两者结合，形成一个双分支结构的频谱融合模块：  
-\begin{itemize}
-	\item \textbf{Wave 分支：} 使用小波卷积提取低频特征与边缘信息；
-	\item \textbf{Fourier 分支：} 通过快速傅里叶变换 (FFT) 将输入特征映射至频率域，并使用逆变换 (IFFT) 重建回空间域；
-\end{itemize}
-
-在 Fourier 分支中，输入特征首先经过 FFT 转换为频域表示，再通过卷积层捕获高频成分。随后使用 IFFT 将频域特征还原至空间域，并与 Wave 分支结果在通道维度上融合。此过程融合了空间域、频域和光谱域特征，显著提升了模型的细节恢复能力与信息完备性。
-
-此外，模块在融合阶段采用二维衰减掩膜（two-dimensional decay mask）机制，如图~\ref{fig:wffb_block} 所示。该机制基于曼哈顿距离生成加权矩阵，以增强不同频率分量的显著性，从而实现自适应的频谱注意力分配。整体融合过程不仅保留了空间特征的完整性，还充分利用了频域特征的全局约束特性。
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.9\textwidth]{figure/chapter4/f4}
-	\caption{波–傅里叶融合模块（WFFB）。模块包含 Wave 与 Fourier 两个分支，后者通过基于曼哈顿距离的衰减掩膜进行加权融合。}
-	\label{fig:wffb_block}
-\end{figure}
-
-\paragraph{跨域特征融合与重建.}  
-在完成空间与频域特征融合后，RPSFNet 通过一个上采样模块生成最终的高分辨率图像。上采样模块基于可学习的反卷积操作与像素重排机制（如 PixelShuffle），实现端到端的分辨率提升。为了保证训练稳定性，输出结果与输入低分辨率图像通过残差连接进行融合，从而进一步提高结构一致性与重建质量。
-
----
-
-综上，RPSFNet 通过层次化的金字塔特征提取与多域频谱融合策略，实现了在轻量化条件下的高质量超分辨率重建。其核心创新体现在：
-\begin{itemize}
-	\item 结合了 CNN 的局部建模与 Transformer 的全局建模能力；
-	\item 在金字塔结构中引入门控与可学习加权机制以实现多尺度自适应融合；
-	\item 通过波–傅里叶融合模块实现空间域与频域的互补增强；
-	\item 整体结构具备优异的性能–效率平衡，特别适用于移动端与嵌入式设备的图像增强任务。
-\end{itemize}
-
-
-\section{实验环境设置}
-\subsection{数据集介绍}
-本文的训练与测试过程基于公开的高质量超分辨率数据集。训练阶段使用 DIV2K 数据集，而测试阶段则选取 Set5、Set14、B100、Urban100 与 Manga109 五个经典基准数据集进行评估。
-
-\textbf{（1）DIV2K 数据集：}
-DIV2K（DIVerse 2K resolution）是目前超分辨率任务中最广泛使用的高质量训练集之一，包含 800 张高分辨率图像作为训练集、100 张作为验证集、100 张作为测试集。图像分辨率约为 $2K$（$2040\times1080$ 级别），涵盖自然、建筑、人物等多种场景，能够充分提升模型的泛化能力。
-
-\textbf{（2）Set5 数据集：}
-Set5 是最早的经典 SR 测试集之一，包含 5 张高分辨率图像，主要为自然场景与人物肖像。虽然规模较小，但其清晰的纹理和边缘细节使其成为衡量 SR 算法性能的重要标准。
-
-\textbf{（3）Set14 数据集：}
-Set14 包含 14 张图像，较 Set5 场景更加多样，包括自然景物、动物与城市建筑等。该数据集可验证算法在不同纹理与边缘特征下的鲁棒性。
-
-\textbf{（4）B100 数据集：}
-B100 数据集来源于 Berkeley Segmentation Dataset (BSDS300/500) 的子集，共 100 张图像，涵盖大量自然场景与复杂纹理，是测试超分辨率模型在复杂纹理恢复能力上的重要基准。
-
-\textbf{（5）Urban100 数据集：}
-Urban100 包含 100 张高分辨率城市建筑场景图像，以其密集的几何结构、重复纹理与精细线条著称，常用于验证模型在恢复建筑结构细节方面的表现。
-
-\textbf{（6）Manga109 数据集：}
-Manga109 数据集收录了 109 部日本漫画书的页面，包含超过 20,000 张图像，具有丰富的手绘线条、灰度渐变与高对比边界特征，是检验模型在人工图像和边缘恢复任务中的关键数据集。
-
-\subsection{实验指标介绍}
-为了全面评估模型的重建性能，本文采用峰值信噪比（Peak Signal-to-Noise Ratio, PSNR）与结构相似性指数（Structural Similarity Index, SSIM）作为主要的定量评价指标。
-
-\textbf{（1）峰值信噪比 (PSNR)：}  
-PSNR 衡量重建图像与原始高分辨率图像之间的像素级差异，其定义如下：
-\begin{equation}
-	\mathrm{PSNR} = 10 \cdot \log_{10} \left( \frac{MAX_I^2}{\mathrm{MSE}} \right)
-\end{equation}
-其中，$MAX_I$ 表示图像像素的最大可能取值（对于 8-bit 图像通常为 255），$\mathrm{MSE}$ 表示均方误差（Mean Squared Error）：
-\begin{equation}
-	\mathrm{MSE} = \frac{1}{H \times W} \sum_{i=1}^{H}\sum_{j=1}^{W} (I_{ij} - \hat{I}_{ij})^2
-\end{equation}
-$H$ 与 $W$ 分别表示图像的高度与宽度，$I_{ij}$ 与 $\hat{I}_{ij}$ 分别为原始图像与重建图像在像素位置 $(i,j)$ 的取值。  
-PSNR 值越高，说明重建图像与真实图像越接近，失真越小。
-
-\textbf{（2）结构相似性指数 (SSIM)：}  
-SSIM 从亮度、对比度和结构三个方面衡量两幅图像的相似程度，其定义如下：
-\begin{equation}
-	\mathrm{SSIM}(x,y) = \frac{(2\mu_x\mu_y + C_1)(2\sigma_{xy} + C_2)}{(\mu_x^2 + \mu_y^2 + C_1)(\sigma_x^2 + \sigma_y^2 + C_2)}
-\end{equation}
-其中，$\mu_x$ 与 $\mu_y$ 分别表示图像 $x$ 与 $y$ 的平均亮度；$\sigma_x^2$ 与 $\sigma_y^2$ 为方差；$\sigma_{xy}$ 为协方差；$C_1$ 与 $C_2$ 为常数，用于避免分母为零的情况。  
-SSIM 的取值范围为 $[0,1]$，值越接近 1 表示两幅图像在结构和感知质量上越一致。
-
-在实际评估中，本文在 YCbCr 色彩空间的 Y 通道上计算 PSNR 与 SSIM，以更准确地反映人眼感知到的亮度质量。
-
-\subsection{实验环境与训练参数设置}
-
-本文提出的方法基于 PyTorch 深度学习框架实现，所有实验均在 NVIDIA A100 80GB PCIe GPU 上进行。  
-在训练过程中，我们采用 Adam 优化器，初始学习率设为 $2\times10^{-5}$，并使用 CharbonnierLoss 作为损失函数以增强训练稳定性。  
-模型由 4 个 RN（Retentive Network）模块构成，每个模块包含 5 个 Retentive Self-Attention 层、一个通道注意力模块（Channel Attention Module）与一个 SFB 模块（SFB Module），通道数设为 48。  
-每次训练批次随机裁剪 $64\times64$ 尺寸的低分辨率（LR）图像块作为输入。  
-此外，为确保实验的公平性与可复现性，本文未采用额外的数据增强方法（如 Mixup、RGB 通道随机打乱等）或训练技巧（如预训练与余弦学习率调度等）。
-
-为了验证所提架构的有效性，我们将其与多种先进的轻量化超分辨率（SR）方法进行了比较，分别在放大倍数为 ×2、×3、×4 的情况下进行实验。  
-具体而言，我们将本文模型与以下已有工作进行对比：  
-EDSR \cite{ref13}、SRMDNF \cite{ref58}、CARN \cite{ref5}、AWSRN-M \cite{ref59}、MADNet \cite{ref60}、SMSR \cite{ref61}、SwinIR \cite{ref4}、ESRT \cite{ref62}、ELAN-light \cite{ref37}、DiVANet \cite{ref6}、SwinIR-NG \cite{ref7} 以及 SCNet \cite{ref63}。  
-通过与这些主流方法的系统性比较，我们全面评估了所提出模型在重建质量与模型复杂度之间的性能平衡。
-
-\section{实验结果分析}
 
 
 \chapter{基于混合注意力的多教师知识蒸馏图像超分辨率模型}
