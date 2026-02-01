@@ -1,28 +1,27 @@
 \begin{tabular}{ll}
-
-	\hspace{3cm} 符号 		&\hspace{2cm}  符号名称\\
-	\hspace{3cm} $x$ 		&\hspace{2cm}  输入特征图\\
-	\hspace{3cm} $m$ 		&\hspace{2cm}  注意头的数量\\
-	\hspace{3cm} $k$ 		&\hspace{2cm} 采样点的数量 \\
-	\hspace{3cm} $f_{g}\left(\cdot\right)$ 		&\hspace{2cm}  全局平均池化函数\\
-	\hspace{3cm} $\tilde{O}_{5}$ 		&\hspace{2cm} 加权后的特征图 \\
-	\hspace{3cm} $G$ 		&\hspace{2cm} 全局特征 \\
-	\hspace{3cm} $C$ 		&\hspace{2cm} 字符特征 \\
-	\hspace{3cm} $W$ 		&\hspace{2cm}  单词特征\\
-	\hspace{3cm} $O$ 		&\hspace{2cm} 融合权重 \\
-	\hspace{3cm} $\mu$ 		&\hspace{2cm} 置信度的阈值 \\
-	\hspace{3cm} $L_{det}$ 		&\hspace{2cm} 文本检测的损失函数 \\
-	\hspace{3cm} $L_{rec}$ 		&\hspace{2cm} 文本识别的损失函数 \\
-	\hspace{3cm} $y_{i}$ 		& \hspace{2cm} 真实标签\\
-	\hspace{3cm} $\hat{y}_{i}$ 		&\hspace{2cm}  预测文本的概率 \\
-	\hspace{3cm} $H$ 		&\hspace{2cm}  特征张量的高 \\
-	\hspace{3cm} $W$ 		&\hspace{2cm}  特征张量的宽 \\
-	\hspace{3cm} $D$ 		&\hspace{2cm}  特征通道数\\
-	\hspace{3cm} $N_t$ 		&\hspace{2cm}  文本长度 \\
-	\hspace{3cm} $y_{v}$ 	&\hspace{2cm} 视觉特征 \\
-	\hspace{3cm} $\mathcal{H}(\cdot)$ 	&\hspace{2cm}   恒等映射\\
-	\hspace{3cm} $T$ 		&\hspace{2cm}  最大解码步数 \\
-	\hspace{3cm} $dist$ 		&\hspace{2cm}  莱文斯坦距离 \\
-	\hspace{3cm} $\mathcal{T}$ 		&\hspace{2cm}  Transformer编码器 \\
-	\hspace{3cm} $\gamma$ 		&\hspace{2cm} 折现因子\\
+    \hspace{3cm} \textbf{符号}       &\hspace{2cm}  \textbf{符号名称}\\
+    \hspace{3cm} $D$        &\hspace{2cm}  源文档集合 \\
+    \hspace{3cm} $X$        &\hspace{2cm}  输入序列表示 \\
+    \hspace{3cm} $d_{model}$ &\hspace{2cm}  隐藏层维度 \\
+    \hspace{3cm} $Q, K, V$  &\hspace{2cm}  查询矩阵、键矩阵、值矩阵 \\
+    \hspace{3cm} $d_k$      &\hspace{2cm}  注意力头维度 \\
+    \hspace{3cm} $h$        &\hspace{2cm}  注意力头数量 \\
+    \hspace{3cm} $W_{t,c}$  &\hspace{2cm}  c-TF-IDF 权重 \\
+    \hspace{3cm} $v_{global}$ &\hspace{2cm}  全局主题向量 \\
+    \hspace{3cm} $w_{topic}$ &\hspace{2cm}  词级主题权重向量 \\
+    \hspace{3cm} $M_{topic}$ &\hspace{2cm}  主题权重矩阵 \\
+    \hspace{3cm} $\lambda$  &\hspace{2cm}  自适应缩放系数 \\
+    \hspace{3cm} $g_i$      &\hspace{2cm}  门控系数 \\
+    \hspace{3cm} $\tilde{h}_i$ &\hspace{2cm}  融合后的句子表征 \\
+    \hspace{3cm} $\mathcal{L}_{cls}$ &\hspace{2cm}  摘要分类损失函数 \\
+    \hspace{3cm} $\mathcal{L}_{cl}$  &\hspace{2cm}  主题语义对齐对比损失 \\
+    \hspace{3cm} $\gamma$   &\hspace{2cm}  损失函数平衡系数 \\
+    \hspace{3cm} $\mathcal{E}$ &\hspace{2cm}  证据链 \\
+    \hspace{3cm} $w$        &\hspace{2cm}  局部上下文窗口半径 \\
+    \hspace{3cm} $\Omega$   &\hspace{2cm}  原子编辑操作集合 \\
+    \hspace{3cm} $\mu_{gap}$ &\hspace{2cm}  高斯分布均值 \\
+    \hspace{3cm} $\Sigma_{gap}$ &\hspace{2cm}  对角协方差矩阵 \\
+    \hspace{3cm} $\tilde{z}$ &\hspace{2cm}  语义补丁（压缩表征） \\
+    \hspace{3cm} $\alpha_j$ &\hspace{2cm}  相关性权重 \\
+    \hspace{3cm} $\tau$     &\hspace{2cm}  动态阈值 \\
 \end{tabular}
